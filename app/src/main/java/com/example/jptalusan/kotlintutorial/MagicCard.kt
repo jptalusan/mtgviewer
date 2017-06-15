@@ -2,8 +2,9 @@ package com.example.jptalusan.kotlintutorial
 
 import android.provider.BaseColumns
 
-class MagicCard(
+data class MagicCard(
         val id: Int,
+        val expansion: String,
         val name: String,
         val manaCost: String,
         val imageUrl: String,
@@ -17,6 +18,6 @@ class MagicCard(
         val variations: String) {
 
     override fun toString(): String {
-        return "$name\n$rarity\n$manaCost\n $power/$toughness\n $text\n$flavor"
+        return "$expansion\n$name\n$rarity\n$manaCost\n$power/$toughness\n$text\n$flavor"
     }
 }

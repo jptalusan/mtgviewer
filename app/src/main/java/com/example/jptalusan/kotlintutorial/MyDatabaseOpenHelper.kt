@@ -18,17 +18,21 @@ class MyDatabaseOpenHelper(ctx: Context) : ManagedSQLiteOpenHelper(ctx, "MTGData
     }
 
     override fun onCreate(db: SQLiteDatabase) {
-        db?.createTable("AllSets", ifNotExists = true,
-                columns = *arrayOf("id" to INTEGER,
-                "name" to TEXT,
-                "manaCost" to TEXT,
-                "imageUrl" to TEXT,
-                "power" to TEXT,
-                "toughness" to TEXT,
-                "type" to TEXT,
-                "artist" to TEXT,
-                "flavor" to BLOB,
-                "text" to BLOB)
+        db?.createTable(allSets, ifNotExists = true,
+                columns = *arrayOf(
+                        "id" to INTEGER,
+                        "expansion" to TEXT,
+                        "name" to TEXT,
+                        "manaCost" to TEXT,
+                        "imageUrl" to TEXT,
+                        "power" to TEXT,
+                        "toughness" to TEXT,
+                        "type" to TEXT,
+                        "artist" to TEXT,
+                        "flavor" to BLOB,
+                        "text" to BLOB,
+                        "rarity" to TEXT,
+                        "variations" to TEXT)
         )
     }
 
@@ -41,3 +45,6 @@ class MyDatabaseOpenHelper(ctx: Context) : ManagedSQLiteOpenHelper(ctx, "MTGData
 // Access property for Context
 val Context.database: MyDatabaseOpenHelper
     get() = MyDatabaseOpenHelper.getInstance(getApplicationContext())
+
+val allSets: String
+        get() = "AllSets"

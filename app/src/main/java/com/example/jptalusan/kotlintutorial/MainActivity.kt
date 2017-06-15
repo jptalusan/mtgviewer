@@ -1,19 +1,22 @@
 package com.example.jptalusan.kotlintutorial
 
+import android.app.PendingIntent.getActivity
 import android.content.Context
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
+import android.support.v7.widget.LinearLayoutManager
 import android.util.Log
 import kotlinx.android.synthetic.main.activity_main.*
 import org.json.JSONObject
 import java.io.IOException
-import com.bumptech.glide.Glide
 import org.jetbrains.anko.db.*
-import android.database.sqlite.SQLiteDatabase
 import android.view.View
-import android.content.ClipData.Item
-import android.database.sqlite.SQLiteQueryBuilder
-import java.util.*
+import com.example.jptalusan.kotlintutorial.R.id.magicCardsRecyclerView
+//import com.example.jptalusan.kotlintutorial.R.id.random
+import com.squareup.picasso.Picasso
+import android.support.v7.widget.DividerItemDecoration
+import org.jetbrains.anko.toolbar
+
 
 //TODO: Add viewpagers for variations and text info first then swipe to image1, image2 etc...
 class MainActivity : AppCompatActivity() {
@@ -28,22 +31,27 @@ class MainActivity : AppCompatActivity() {
         if (!doesDatabaseExist(this, database.databaseName)) {
             parseJSONFile("allsets")
         } else {
-            Glide.with(this).load(getARandomRow("AllSets").imageUrl).into(imageView);
+            val expansion = getRandomExpansionSet()
+            supportActionBar!!.title = expansion
+            magicCardsRecyclerView.layoutManager = LinearLayoutManager(this)
+            magicCardsRecyclerView.hasFixedSize()
+            magicCardsRecyclerView.adapter = MagicCardAdapter(getSet(expansion))
+            magicCardsRecyclerView.addItemDecoration(DividerItemDecoration(this,
+                    DividerItemDecoration.VERTICAL))
+
+//            Picasso.with(this)
+//                    .load(getARandomRow().imageUrl)
+//                    .placeholder(R.drawable.testing)
+//                    .into(imageView)
         }
 
-        random.setOnClickListener(View.OnClickListener {
-            val tables = getTableNames()
-            val rng = Random()
-            val index = rng.nextInt(tables.size)
-            val randomTableName = tables.get(index)
-
-            val result = getARandomRareRow(randomTableName)
-            if (result.count() > 0)
-                Glide.with(this).load(result[0].imageUrl).into(imageView);
-
-//            val result = getARandomRow(randomTableName)
-//            Glide.with(this).load(result.imageUrl).into(imageView);
-        })
+//        random.setOnClickListener(View.OnClickListener {
+//            val result = getARandomRow()
+//            Picasso.with(this)
+//                    .load(result.imageUrl)
+//                    .placeholder(R.drawable.testing)
+//                    .into(imageView);
+//        })
     }
 
     fun loadJSONFromAsset(fileName: String) : String? {
@@ -68,16 +76,6 @@ class MainActivity : AppCompatActivity() {
         Log.d(TAG, input.length().toString())
         for (i in 0..(input.names().length() - 1)) {
             val expansionCode = input.names().getString(i)
-            var tempExpansionCode = expansionCode
-            //Problem with table names beginning with a number
-            if (Character.isDigit(expansionCode[0])) {
-                val temp = convertNumberToName(tempExpansionCode[0])
-                tempExpansionCode = temp + tempExpansionCode.substring(1)
-            }
-
-            if (tempExpansionCode.equals("ALL")) {
-                tempExpansionCode = "ALLI"
-            }
 
             Log.d(TAG, input.getJSONObject(expansionCode).getString("name"))
 
@@ -86,30 +84,6 @@ class MainActivity : AppCompatActivity() {
                 infoCode = input.getJSONObject(expansionCode).getString("magicCardsInfoCode")
             } else {
                 continue
-            }
-
-            if (tableExists(database.readableDatabase, tempExpansionCode)) {
-                Log.d(TAG, "Table: $tempExpansionCode already exists...")
-                continue
-            } else {
-                Log.d(TAG, "Creating new table: $tempExpansionCode")
-            }
-
-            //Create table here
-            database.use {
-                createTable(tempExpansionCode, true,
-                        "id" to INTEGER,
-                        "name" to TEXT,
-                        "manaCost" to TEXT,
-                        "imageUrl" to TEXT,
-                        "power" to TEXT,
-                        "toughness" to TEXT,
-                        "type" to TEXT,
-                        "artist" to TEXT,
-                        "flavor" to BLOB,
-                        "text" to BLOB,
-                        "rarity" to TEXT,
-                        "variations" to TEXT)
             }
 
             val cards = input.getJSONObject(expansionCode).getJSONArray("cards")
@@ -122,13 +96,10 @@ class MainActivity : AppCompatActivity() {
                 var cardName: String? = ""
                 var cardText: String? = ""
                 var variations: String? = ""
-
                 var multiverseid: String? = "0"
 
                 if (cards.getJSONObject(j).has("name"))
                     cardName = cards.getJSONObject(j).getString("name")
-
-//                Log.d(TAG, cardName)
 
                 if (cards.getJSONObject(j).has("mciNumber")) {
                     mciNumber = cards.getJSONObject(j).getString("mciNumber")
@@ -175,8 +146,9 @@ class MainActivity : AppCompatActivity() {
 
 
                 database.use {
-                    insert(tempExpansionCode,
+                    insert(allSets,
                             "id" to mciNumber,
+                            "expansion" to expansionCode,
                             "name" to cardName,
                             "manaCost" to manaCost,
                             "imageUrl" to url,
@@ -192,51 +164,6 @@ class MainActivity : AppCompatActivity() {
 
             }
         }
-        //Another method for reading the JSON
-//        val LEA = input.getJSONObject("LEA")
-//        Log.d("TAG", LEA.toString())
-
-//        val keys = input.keys()
-//        while (keys.hasNext()) {
-//            val key = keys.next()
-//            Log.d("TAG", key.toString())
-//            val tag = input.get(key)
-//            if (tag is JSONObject) {
-//                val name = tag.getString("name")
-//                Log.d("TAG", name)
-////                Log.d("TAG", input.get(key).toString())
-//
-//            }
-//        }
-    }
-
-    //TODO: check if other sets have number at the start
-    fun convertNumberToName(digit: Char) =
-            when (digit) {
-                '1' -> "First"
-                '2' -> "Second"
-                '3' -> "Third"
-                '4' -> "Fourth"
-                '5' -> "Fifth"
-                '6' -> "Sixth"
-                '7' -> "Seventh"
-                '8' -> "Eight"
-                '9' -> "Nine"
-                else -> "Tenth"
-            }
-
-    fun tableExists(db: SQLiteDatabase?, tableName: String?): Boolean {
-        if (tableName == null || db == null || !db.isOpen) {
-            return false
-        }
-        val cursor = db.rawQuery("SELECT COUNT(*) FROM sqlite_master WHERE type = ? AND name = ?", arrayOf("table", tableName))
-        if (!cursor.moveToFirst()) {
-            cursor.close()
-            return false
-        }
-        val count = cursor.getInt(0)
-        cursor.close()
-        return count > 0
     }
 
     private fun doesDatabaseExist(context: Context, dbName: String): Boolean {
@@ -244,47 +171,34 @@ class MainActivity : AppCompatActivity() {
         return dbFile.exists()
     }
 
-    private fun querySetToArrayList(setName: String) =
-        database.use {
-            select(setName).exec {
-                val rowParser = classParser<MagicCard>()
-//                val rowParser = rowParser {
-//                    id: Int,
-//                    name: String,
-//                    manaCost: String,
-//                    imageUrl: String,
-//                    power: String,
-//                    toughness: String,
-//                    type: String,
-//                    artist: String,
-//                    flavor: String,
-//                    text: String ->
-//                    MagicCard(id, name, manaCost, imageUrl, power, toughness, type, artist, flavor, text)
-//                }
-                parseList(rowParser)
-            }
-        }
-
     private fun getARandomRow() =
             database.use {
-                select("AllSets").orderBy("RANDOM()").limit(1).exec {
-                    val rowParser = classParser<MagicCard>()
+                select(allSets).orderBy("RANDOM()").limit(1).exec {
                     parseSingle(rowParser)
                 }
             }
 
-    private fun getTableNames() =
+    private fun getARandomRareRow() =
             database.use {
-                select("sqlite_master", "name").whereSimple("type=?", "table").exec {
-                    parseList(StringParser)
-                }
-            }
-
-    private fun getARandomRareRow(setName: String) =
-            database.use {
-                select(setName).whereSimple("rarity=? or rarity=?", "Rare", "Mythic Rare").orderBy("RANDOM()").limit(1).exec {
-                    val rowParser = classParser<MagicCard>()
+                select(allSets).whereSimple("rarity=? or rarity=?", "Rare", "Mythic Rare").orderBy("RANDOM()").limit(1).exec {
                     parseList(rowParser)
                 }
             }
+
+    private fun getSet(setName: String) =
+            database.use {
+                select(allSets).whereSimple("expansion=?", setName).exec {
+                    parseList(rowParser)
+                }
+            }
+
+    private fun getRandomExpansionSet() =
+            database.use {
+                select(allSets, "expansion").distinct().orderBy("RANDOM()").limit(1).exec {
+                    parseSingle(StringParser)
+                }
+    }
+    val rowParser = classParser<MagicCard>()
+    //TODO:
+    //Contains string: SELECT * FROM 'AllSets' where manaCost like '%U%' LIMIT 0,30
 }
