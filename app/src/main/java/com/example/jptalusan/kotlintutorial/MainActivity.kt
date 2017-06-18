@@ -66,8 +66,12 @@ class MainActivity : AppCompatActivity() {
         val prefs = this.getSharedPreferences(PREFS_FILENAME, 0)
 
         val setList: MutableList<String> = mutableListOf("")
+        val randomSet = getRandomExpansionSet()
         for (s in getSetsList()) {
             val setName = prefs.getString(s, "")
+            if (randomSet == s) {
+                supportActionBar!!.title = setName
+            }
             Log.d(TAG, setName)
             setList.add(setName)
             setListCode.add(s)
@@ -75,8 +79,6 @@ class MainActivity : AppCompatActivity() {
 
         magicCardsRecyclerView.layoutManager = LinearLayoutManager(this)
         magicCardsRecyclerView.hasFixedSize()
-        val randomSet = getRandomExpansionSet()
-        Log.d(TAG, "Random Set: $randomSet, ${randomSet.count()}")
         magicCardsRecyclerView.adapter = MagicCardAdapter(getSet(randomSet))
         magicCardsRecyclerView.addItemDecoration(DividerItemDecoration(this,
                 DividerItemDecoration.VERTICAL))
