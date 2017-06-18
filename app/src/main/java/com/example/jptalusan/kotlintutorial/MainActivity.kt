@@ -1,187 +1,114 @@
 package com.example.jptalusan.kotlintutorial
 
-import android.app.PendingIntent.getActivity
-import android.content.Context
+import android.content.SharedPreferences
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
+import android.support.v7.app.ActionBarDrawerToggle
 import android.support.v7.widget.LinearLayoutManager
 import android.util.Log
 import kotlinx.android.synthetic.main.activity_main.*
-import org.json.JSONObject
-import java.io.IOException
 import org.jetbrains.anko.db.*
 import android.view.View
-import com.example.jptalusan.kotlintutorial.R.id.magicCardsRecyclerView
-//import com.example.jptalusan.kotlintutorial.R.id.random
-import com.squareup.picasso.Picasso
 import android.support.v7.widget.DividerItemDecoration
-import org.jetbrains.anko.toolbar
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
+import android.widget.ListView
+import android.widget.TextView
+import kotlinx.android.synthetic.main.activity_main.view.*
+import org.jetbrains.anko.support.v4.drawerLayout
+import android.support.v4.view.GravityCompat
+import android.view.Menu
+import android.view.MenuItem
+import android.view.MenuInflater
+import android.widget.Toast
+import android.app.SearchManager
+import android.content.Intent
+
+
+
+
 
 
 //TODO: Add viewpagers for variations and text info first then swipe to image1, image2 etc...
 class MainActivity : AppCompatActivity() {
-    var url: String? = null
     val TAG = "MTGViewer"
+    var prefs: SharedPreferences? = null
+    val PREFS_FILENAME = "com.teamtreehouse.colorsarefun.prefs"
+    val setListCode: MutableList<String> = mutableListOf("")
+    var mDrawerToggle: ActionBarDrawerToggle? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        setSupportActionBar(my_toolbar)
         Log.d(TAG, "TEST")
-        //TODO: check if database is present so as not to parse again
-        if (!doesDatabaseExist(this, database.databaseName)) {
-            parseJSONFile("allsets")
-        } else {
-            val expansion = getRandomExpansionSet()
-            supportActionBar!!.title = expansion
-            magicCardsRecyclerView.layoutManager = LinearLayoutManager(this)
-            magicCardsRecyclerView.hasFixedSize()
-            magicCardsRecyclerView.adapter = MagicCardAdapter(getSet(expansion))
-            magicCardsRecyclerView.addItemDecoration(DividerItemDecoration(this,
-                    DividerItemDecoration.VERTICAL))
 
-//            Picasso.with(this)
-//                    .load(getARandomRow().imageUrl)
-//                    .placeholder(R.drawable.testing)
-//                    .into(imageView)
+        mDrawerToggle = object : ActionBarDrawerToggle(this, drawer_layout, R.string.app_name, R.string.app_name) {
+            override fun onDrawerClosed(drawerView: View) {
+                invalidateOptionsMenu(); // creates call to onPrepareOptionsMenu()
+            }
+
+            override fun onDrawerOpened(drawerView: View) {
+                invalidateOptionsMenu(); // creates call to onPrepareOptionsMenu()
+            }
         }
 
-//        random.setOnClickListener(View.OnClickListener {
-//            val result = getARandomRow()
-//            Picasso.with(this)
-//                    .load(result.imageUrl)
-//                    .placeholder(R.drawable.testing)
-//                    .into(imageView);
-//        })
-    }
-
-    fun loadJSONFromAsset(fileName: String) : String? {
-        Log.d("TAG", "loadJSONFromAsset")
-        try {
-            val istream = resources.openRawResource(
-                    resources.getIdentifier(fileName,
-                            "raw", packageName))
-            val size = istream.available()
-            val buffer = ByteArray(size)
-            istream.read(buffer)
-            istream.close()
-            return String(buffer)
-        } catch (e: IOException) {
-            print(e)
-            return null
-        }
-    }
-
-    fun parseJSONFile(fileName: String) {
-        val input = JSONObject(loadJSONFromAsset(fileName))
-        Log.d(TAG, input.length().toString())
-        for (i in 0..(input.names().length() - 1)) {
-            val expansionCode = input.names().getString(i)
-
-            Log.d(TAG, input.getJSONObject(expansionCode).getString("name"))
-
-            var infoCode: String? = ""
-            if (input.getJSONObject(expansionCode).has("magicCardsInfoCode")) {
-                infoCode = input.getJSONObject(expansionCode).getString("magicCardsInfoCode")
+        (mDrawerToggle as ActionBarDrawerToggle).toolbarNavigationClickListener = View.OnClickListener {
+            if (drawer_layout.isDrawerOpen(GravityCompat.START)) {
+                drawer_layout.closeDrawer(GravityCompat.START)
             } else {
-                continue
-            }
-
-            val cards = input.getJSONObject(expansionCode).getJSONArray("cards")
-            for (j in 0..(cards.length() - 1)) {
-                var power: String? = "?"
-                var toughness: String? = "?"
-                var flavor: String? = ""
-                var manaCost: String? = "0"
-                var mciNumber: String? = "0"
-                var cardName: String? = ""
-                var cardText: String? = ""
-                var variations: String? = ""
-                var multiverseid: String? = "0"
-
-                if (cards.getJSONObject(j).has("name"))
-                    cardName = cards.getJSONObject(j).getString("name")
-
-                if (cards.getJSONObject(j).has("mciNumber")) {
-                    mciNumber = cards.getJSONObject(j).getString("mciNumber")
-                    mciNumber = mciNumber.split("/")[mciNumber.split("/").size - 1]
-                } else {
-                    if (cards.getJSONObject(j).has("multiverseid")) {
-                        multiverseid = cards.getJSONObject(j).getString("multiverseid")
-                    }
-                }
-
-                if (cards.getJSONObject(j).has("manaCost"))
-                    manaCost = cards.getJSONObject(j).getString("manaCost")
-
-                if (cards.getJSONObject(j).has("flavor")) {
-                    flavor = cards.getJSONObject(j).getString("flavor")
-                }
-
-                if (cards.getJSONObject(j).has("text")) {
-                    cardText = cards.getJSONObject(j).getString("text")
-                }
-
-                val artist = cards.getJSONObject(j).getString("artist")
-                val rarity = cards.getJSONObject(j).getString("rarity")
-
-                val type = cards.getJSONObject(j).getString("type")
-                if (type.contains("Creature")) {
-                    if (cards.getJSONObject(j).has("power")) {
-                        power = cards.getJSONObject(j).getString("power")
-                    }
-
-                    if (cards.getJSONObject(j).has("toughness")) {
-                        toughness = cards.getJSONObject(j).getString("toughness")
-                    }
-                }
-
-                if (cards.getJSONObject(j).has("variations")) {
-                    variations = cards.getJSONObject(j).getString("variations")
-                }
-
-                if (mciNumber != "0")
-                    url = "http://magiccards.info/scans/en/$infoCode/$mciNumber.jpg"
-                else
-                    url = "http://gatherer.wizards.com/Handlers/Image.ashx?multiverseid=$multiverseid&type=card"
-
-
-                database.use {
-                    insert(allSets,
-                            "id" to mciNumber,
-                            "expansion" to expansionCode,
-                            "name" to cardName,
-                            "manaCost" to manaCost,
-                            "imageUrl" to url,
-                            "power" to power,
-                            "toughness" to toughness,
-                            "type" to type,
-                            "artist" to artist,
-                            "flavor" to flavor,
-                            "text" to cardText,
-                            "rarity" to rarity,
-                            "variations" to variations)
-                }
-
+                drawer_layout.openDrawer(GravityCompat.START)
             }
         }
-    }
+        drawer_layout.addDrawerListener(mDrawerToggle as ActionBarDrawerToggle)
+//        (mDrawerToggle as ActionBarDrawerToggle).syncState()
 
-    private fun doesDatabaseExist(context: Context, dbName: String): Boolean {
-        val dbFile = context.getDatabasePath(dbName)
-        return dbFile.exists()
-    }
+        val prefs = this.getSharedPreferences(PREFS_FILENAME, 0)
 
-    private fun getARandomRow() =
-            database.use {
-                select(allSets).orderBy("RANDOM()").limit(1).exec {
-                    parseSingle(rowParser)
-                }
+        val setList: MutableList<String> = mutableListOf("")
+        for (s in getSetsList()) {
+            val setName = prefs.getString(s, "")
+            Log.d(TAG, setName)
+            setList.add(setName)
+            setListCode.add(s)
+        }
+
+        magicCardsRecyclerView.layoutManager = LinearLayoutManager(this)
+        magicCardsRecyclerView.hasFixedSize()
+        val randomSet = getRandomExpansionSet()
+        Log.d(TAG, "Random Set: $randomSet, ${randomSet.count()}")
+        magicCardsRecyclerView.adapter = MagicCardAdapter(getSet(randomSet))
+        magicCardsRecyclerView.addItemDecoration(DividerItemDecoration(this,
+                DividerItemDecoration.VERTICAL))
+
+        left_drawer.adapter = ArrayAdapter<String>(this, R.layout.drawer_list_item, setList)
+
+        drawer_layout.setDrawerShadow(R.drawable.drawer_shadow, 0)
+        supportActionBar!!.setDisplayHomeAsUpEnabled(true)
+        supportActionBar!!.setHomeButtonEnabled(true)
+
+//        left_drawer.itemClick {  }
+        left_drawer.setOnItemClickListener({
+            _: AdapterView<*>, view: View, i: Int, _: Long ->
+            if (view is TextView) {
+                val expansion = view.text.toString()
+                Log.d(TAG, expansion)
+                supportActionBar!!.title = expansion
+                magicCardsRecyclerView.layoutManager = LinearLayoutManager(this)
+                magicCardsRecyclerView.hasFixedSize()
+                val setCode = setListCode[i]
+                magicCardsRecyclerView.adapter = MagicCardAdapter(getSet(setCode))
+                magicCardsRecyclerView.addItemDecoration(DividerItemDecoration(this,
+                        DividerItemDecoration.VERTICAL))
             }
+            drawer_layout.closeDrawer(left_drawer)
+        })
+    }
 
-    private fun getARandomRareRow() =
+    private fun getRandomExpansionSet() =
             database.use {
-                select(allSets).whereSimple("rarity=? or rarity=?", "Rare", "Mythic Rare").orderBy("RANDOM()").limit(1).exec {
-                    parseList(rowParser)
+                select(allSets, "expansion").distinct().orderBy("RANDOM()").limit(1).exec {
+                    parseSingle(StringParser)
                 }
             }
 
@@ -192,13 +119,49 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
-    private fun getRandomExpansionSet() =
+    private fun getSetsList() =
             database.use {
-                select(allSets, "expansion").distinct().orderBy("RANDOM()").limit(1).exec {
-                    parseSingle(StringParser)
+                select(allSets, "expansion").distinct().exec {
+                    parseList(StringParser)
                 }
-    }
+            }
     val rowParser = classParser<MagicCard>()
     //TODO:
     //Contains string: SELECT * FROM 'AllSets' where manaCost like '%U%' LIMIT 0,30
+
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        val inflater = menuInflater
+        inflater.inflate(R.menu.main, menu)
+        return super.onCreateOptionsMenu(menu)
+    }
+
+    /* Called whenever we call invalidateOptionsMenu() */
+    override fun onPrepareOptionsMenu(menu: Menu): Boolean {
+        // If the nav drawer is open, hide action items related to the content view
+        val drawerOpen = drawer_layout.isDrawerOpen(left_drawer)
+        menu.findItem(R.id.action_websearch).isVisible = !drawerOpen
+        return super.onPrepareOptionsMenu(menu)
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        // The action bar home/up action should open or close the drawer.
+        // ActionBarDrawerToggle will take care of this.
+        if ((mDrawerToggle as ActionBarDrawerToggle).onOptionsItemSelected(item)) {
+            return true
+        }
+        // Handle action buttons
+        when (item.itemId) {
+            R.id.action_websearch -> {
+                Log.d(TAG, "Search")
+                return true
+            }
+            else -> return super.onOptionsItemSelected(item)
+        }
+    }
+
+    override fun onPostCreate(savedInstanceState: Bundle?) {
+        super.onPostCreate(savedInstanceState)
+        // Sync the toggle state after onRestoreInstanceState has occurred.
+        (mDrawerToggle as ActionBarDrawerToggle).syncState()
+    }
 }

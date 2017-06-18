@@ -69,16 +69,16 @@
     <TextView
         android:id="@+id/stats"
         android:layout_width="wrap_content"
-        android:layout_height="19dp"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="0dp"
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
         android:gravity="right"
         android:text="TextView"
         app:layout_constraintBottom_toBottomOf="@+id/text"
-        app:layout_constraintStart_toEndOf="@+id/text"
-        app:layout_constraintTop_toBottomOf="@+id/rarity"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginEnd="8dp" />
+        app:layout_constraintStart_toEndOf="@+id/text"
+        app:layout_constraintTop_toBottomOf="@+id/rarity" />
 
     <TextView
         android:id="@+id/rarity"

@@ -19,6 +19,7 @@ class MagicCardImage : AppCompatActivity() {
         Picasso.with(this)
                 .load(card)
                 .placeholder(R.drawable.testing)
+                .error(R.mipmap.ic_launcher_round)
                 .into(imageView)
     }
 }

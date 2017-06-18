@@ -60,7 +60,7 @@ class MagicCardAdapter(var cardList: List<MagicCard>)
             itemView.type.text = magicCard.type;
             itemView.cost.text = magicCard.manaCost;
             itemView.text.text = magicCard.text;
-            val stat = "$magicCard.power/$magicCard.toughness"
+            val stat = magicCard.power + "/" + magicCard.toughness
             itemView.stats.text = stat
             itemView.rarity.text = magicCard.rarity;
         }
