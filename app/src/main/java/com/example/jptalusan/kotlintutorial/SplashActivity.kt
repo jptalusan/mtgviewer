@@ -9,6 +9,7 @@ import android.util.Log
 import org.jetbrains.anko.db.*
 import org.jetbrains.anko.intentFor
 import org.json.JSONObject
+import org.json.JSONStringer
 import java.io.IOException
 
 class SplashActivity : AppCompatActivity() {
@@ -60,7 +61,7 @@ class SplashActivity : AppCompatActivity() {
                 editor.apply()
             }
 
-            var infoCode: String? = ""
+            var infoCode: String?
             if (input.getJSONObject(expansionCode).has("magicCardsInfoCode")) {
                 infoCode = input.getJSONObject(expansionCode).getString("magicCardsInfoCode")
             } else {
@@ -83,11 +84,11 @@ class SplashActivity : AppCompatActivity() {
                     cardName = cards.getJSONObject(j).getString("name")
 
                 if (cards.getJSONObject(j).has("mciNumber")) {
-                    mciNumber = cards.getJSONObject(j).getString("mciNumber")
+                    mciNumber = cards.getJSONObject(j).getString("mciNumber").toString()
                     mciNumber = mciNumber.split("/")[mciNumber.split("/").size - 1]
                 } else {
                     if (cards.getJSONObject(j).has("multiverseid")) {
-                        multiverseid = cards.getJSONObject(j).getString("multiverseid")
+                        multiverseid = cards.getJSONObject(j).getString("multiverseid").toString()
                     }
                 }
 
@@ -142,7 +143,6 @@ class SplashActivity : AppCompatActivity() {
                             "rarity" to rarity,
                             "variations" to variations)
                 }
-
             }
         }
     }

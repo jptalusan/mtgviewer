@@ -28,7 +28,7 @@ class MagicCardAdapter(var cardList: List<MagicCard>)
             selectedPosition = position
             notifyDataSetChanged()
 
-            parent!!.context.startActivity<MagicCardImage>("url" to cardList[position].imageUrl)
+            parent.context.startActivity<MagicCardImage>("url" to cardList[position].imageUrl)
         }
     }
 
@@ -40,8 +40,7 @@ class MagicCardAdapter(var cardList: List<MagicCard>)
             holder!!.itemView.backgroundColor = Color.parseColor("#ffffff")
         }
 
-        (holder as ViewHolder)
-                .bindData(
+        holder.bindData(
                         cardList[position]
                 )
 

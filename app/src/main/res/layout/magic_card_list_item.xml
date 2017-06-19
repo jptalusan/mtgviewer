@@ -10,33 +10,36 @@
         android:id="@+id/name"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
         android:gravity="left"
-        android:singleLine="true"
+        android:maxLines="2"
+        android:singleLine="false"
         android:text="TextView"
+        android:textStyle="bold"
         app:layout_constraintEnd_toStartOf="@+id/type"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        tools:layout_editor_absoluteX="8dp"
-        android:layout_marginStart="8dp"
-        android:layout_marginEnd="8dp" />
+        tools:layout_editor_absoluteX="8dp" />
 
     <TextView
         android:id="@+id/type"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
         android:gravity="center"
-        android:singleLine="true"
+        android:maxLines="2"
+        android:singleLine="false"
         android:text="TextView"
         app:layout_constraintEnd_toStartOf="@+id/cost"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toEndOf="@+id/name"
         app:layout_constraintTop_toTopOf="parent"
-        tools:layout_editor_absoluteX="133dp"
-        android:layout_marginStart="8dp"
-        android:layout_marginEnd="8dp" />
+        tools:layout_editor_absoluteX="133dp" />
 
     <TextView
         android:id="@+id/cost"
@@ -60,7 +63,7 @@
         android:layout_marginBottom="8dp"
         android:layout_marginEnd="16dp"
         android:layout_marginStart="16dp"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="16dp"
         android:justificationMode="inter_word"
         android:singleLine="false"
         android:text="TextView"

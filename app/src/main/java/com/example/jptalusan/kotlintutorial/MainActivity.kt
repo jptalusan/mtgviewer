@@ -8,25 +8,20 @@ import android.support.v7.widget.LinearLayoutManager
 import android.util.Log
 import kotlinx.android.synthetic.main.activity_main.*
 import org.jetbrains.anko.db.*
-import android.view.View
 import android.support.v7.widget.DividerItemDecoration
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
-import android.widget.ListView
 import android.widget.TextView
-import kotlinx.android.synthetic.main.activity_main.view.*
-import org.jetbrains.anko.support.v4.drawerLayout
 import android.support.v4.view.GravityCompat
-import android.view.Menu
-import android.view.MenuItem
-import android.view.MenuInflater
-import android.widget.Toast
 import android.app.SearchManager
-import android.content.Intent
-
-
-
-
+import android.support.v4.widget.SearchViewCompat.setSearchableInfo
+import android.view.*
+import android.support.v7.widget.SearchView
+import android.widget.ShareActionProvider
+import org.jetbrains.anko.searchManager
+import android.content.Context.SEARCH_SERVICE
+import android.support.v4.view.MenuItemCompat
+import kotlinx.coroutines.experimental.selects.select
 
 
 //TODO: Add viewpagers for variations and text info first then swipe to image1, image2 etc...
@@ -36,8 +31,11 @@ class MainActivity : AppCompatActivity() {
     val PREFS_FILENAME = "com.teamtreehouse.colorsarefun.prefs"
     val setListCode: MutableList<String> = mutableListOf("")
     var mDrawerToggle: ActionBarDrawerToggle? = null
+    internal var mShareActionProvider: ShareActionProvider? = null
+    var expansion: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        println("MainActivity")
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         setSupportActionBar(my_toolbar)
@@ -45,10 +43,12 @@ class MainActivity : AppCompatActivity() {
 
         mDrawerToggle = object : ActionBarDrawerToggle(this, drawer_layout, R.string.app_name, R.string.app_name) {
             override fun onDrawerClosed(drawerView: View) {
+                drawer_layout.setDrawerTitle(Gravity.START, "Expansion Sets")
                 invalidateOptionsMenu(); // creates call to onPrepareOptionsMenu()
             }
 
             override fun onDrawerOpened(drawerView: View) {
+                drawer_layout.setDrawerTitle(Gravity.START, "Expansion Sets")
                 invalidateOptionsMenu(); // creates call to onPrepareOptionsMenu()
             }
         }
@@ -66,10 +66,10 @@ class MainActivity : AppCompatActivity() {
         val prefs = this.getSharedPreferences(PREFS_FILENAME, 0)
 
         val setList: MutableList<String> = mutableListOf("")
-        val randomSet = getRandomExpansionSet()
+        expansion = getRandomExpansionSet()
         for (s in getSetsList()) {
             val setName = prefs.getString(s, "")
-            if (randomSet == s) {
+            if (expansion == s) {
                 supportActionBar!!.title = setName
             }
             Log.d(TAG, setName)
@@ -79,7 +79,7 @@ class MainActivity : AppCompatActivity() {
 
         magicCardsRecyclerView.layoutManager = LinearLayoutManager(this)
         magicCardsRecyclerView.hasFixedSize()
-        magicCardsRecyclerView.adapter = MagicCardAdapter(getSet(randomSet))
+        magicCardsRecyclerView.adapter = MagicCardAdapter(getSet(expansion!!))
         magicCardsRecyclerView.addItemDecoration(DividerItemDecoration(this,
                 DividerItemDecoration.VERTICAL))
 
@@ -89,11 +89,10 @@ class MainActivity : AppCompatActivity() {
         supportActionBar!!.setDisplayHomeAsUpEnabled(true)
         supportActionBar!!.setHomeButtonEnabled(true)
 
-//        left_drawer.itemClick {  }
         left_drawer.setOnItemClickListener({
             _: AdapterView<*>, view: View, i: Int, _: Long ->
             if (view is TextView) {
-                val expansion = view.text.toString()
+                expansion = view.text.toString()
                 Log.d(TAG, expansion)
                 supportActionBar!!.title = expansion
                 magicCardsRecyclerView.layoutManager = LinearLayoutManager(this)
@@ -116,7 +115,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun getSet(setName: String) =
             database.use {
-                select(allSets).whereSimple("expansion=?", setName).exec {
+                select(allSets).whereSimple("expansion=?", setName).orderBy("name ASC").exec {
                     parseList(rowParser)
                 }
             }
@@ -132,8 +131,7 @@ class MainActivity : AppCompatActivity() {
     //Contains string: SELECT * FROM 'AllSets' where manaCost like '%U%' LIMIT 0,30
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        val inflater = menuInflater
-        inflater.inflate(R.menu.main, menu)
+        menuInflater.inflate(R.menu.main, menu)
         return super.onCreateOptionsMenu(menu)
     }
 
@@ -141,7 +139,7 @@ class MainActivity : AppCompatActivity() {
     override fun onPrepareOptionsMenu(menu: Menu): Boolean {
         // If the nav drawer is open, hide action items related to the content view
         val drawerOpen = drawer_layout.isDrawerOpen(left_drawer)
-        menu.findItem(R.id.action_websearch).isVisible = !drawerOpen
+        menu.findItem(R.id.action_search).isVisible = !drawerOpen
         return super.onPrepareOptionsMenu(menu)
     }
 
@@ -153,8 +151,20 @@ class MainActivity : AppCompatActivity() {
         }
         // Handle action buttons
         when (item.itemId) {
-            R.id.action_websearch -> {
+            R.id.action_search -> {
                 Log.d(TAG, "Search")
+                return true
+            }
+            R.id.action_rare -> {
+                if (item.isChecked) {
+                    println("Checked")
+                    item.isChecked = false
+                    magicCardsRecyclerView.adapter = MagicCardAdapter(getSet(expansion!!))
+                } else {
+                    println("unchecked")
+                    item.isChecked = true
+                    updateListAdapter(expansion!!, "Rare")
+                }
                 return true
             }
             else -> return super.onOptionsItemSelected(item)
@@ -166,4 +176,24 @@ class MainActivity : AppCompatActivity() {
         // Sync the toggle state after onRestoreInstanceState has occurred.
         (mDrawerToggle as ActionBarDrawerToggle).syncState()
     }
+
+    fun updateListAdapter(setName: String?, rarity: String) {
+        val newList =
+                database.use {
+                    select(allSets).whereSimple("expansion=? and rarity=?", setName!!, rarity).orderBy("name ASC").exec {
+                        parseList(rowParser)
+                    }
+                }
+        magicCardsRecyclerView.adapter = MagicCardAdapter(newList)
+
+    }
+}
+
+class MyRowParser : RowParser<Triple<Int, String, String>> {
+    override fun parseRow(columns: Array<Any?>): Triple<Int, String, String> {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+//    override fun parseRow(columns: Array<Any>): Triple<Int, String, String> {
+//        return Triple(columns[0] as Int, columns[1] as String, columns[2] as String)
+//    }
 }

@@ -1,7 +1,17 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
-    <item android:id="@+id/action_websearch"
-        android:icon="@mipmap/ic_launcher"
+    <item
+        android:id="@+id/action_search"
+        android:icon="@android:drawable/ic_menu_search"
         android:title="search"
-        app:showAsAction="ifRoom|withText" />
+        app:showAsAction="ifRoom|withText"
+        android:actionViewClass="android.widget.SearchView"
+        android:orderInCategory="1" />
+    <item
+        android:id="@+id/action_rare"
+        android:icon="@mipmap/ic_launcher_round"
+        android:title="options"
+        app:showAsAction="never"
+        android:checkable="true"
+        android:orderInCategory="1" />
 </menu>

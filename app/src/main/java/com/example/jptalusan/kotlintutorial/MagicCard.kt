@@ -3,7 +3,7 @@ package com.example.jptalusan.kotlintutorial
 import android.provider.BaseColumns
 
 data class MagicCard(
-        val id: Int,
+        val id: String,
         val expansion: String,
         val name: String,
         val manaCost: String,

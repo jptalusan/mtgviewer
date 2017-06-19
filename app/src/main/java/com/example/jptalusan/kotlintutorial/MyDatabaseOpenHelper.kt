@@ -18,9 +18,9 @@ class MyDatabaseOpenHelper(ctx: Context) : ManagedSQLiteOpenHelper(ctx, "MTGData
     }
 
     override fun onCreate(db: SQLiteDatabase) {
-        db?.createTable(allSets, ifNotExists = true,
+        db.createTable(allSets, ifNotExists = true,
                 columns = *arrayOf(
-                        "id" to INTEGER,
+                        "id" to TEXT,
                         "expansion" to TEXT,
                         "name" to TEXT,
                         "manaCost" to TEXT,
@@ -38,7 +38,7 @@ class MyDatabaseOpenHelper(ctx: Context) : ManagedSQLiteOpenHelper(ctx, "MTGData
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
         // Here you can upgrade tables, as usual
-        db?.dropTable("LEA", true)
+        db.dropTable("LEA", true)
     }
 }
 
