@@ -57,14 +57,14 @@ class MagicCardAdapter(var cardList: List<MagicCard>)
         {
             itemView.name.text = magicCard.name;
             itemView.type.text = magicCard.type;
-            itemView.cost.text = magicCard.manaCost;
+            itemView.cost.text = magicCard.manaCost.replace("{","").replace("}","");
             itemView.text.text = magicCard.text;
             var stat: String? = ""
             if (magicCard.type.contains("Creature")) {
                 stat = magicCard.power + "/" + magicCard.toughness
             }
             itemView.stats.text = stat
-            itemView.rarity.text = magicCard.rarity;
+            itemView.rarity.text = magicCard.rarity
         }
     }
 

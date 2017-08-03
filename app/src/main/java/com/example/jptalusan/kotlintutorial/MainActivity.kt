@@ -9,20 +9,15 @@ import android.util.Log
 import kotlinx.android.synthetic.main.activity_main.*
 import org.jetbrains.anko.db.*
 import android.support.v7.widget.DividerItemDecoration
-import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.TextView
 import android.support.v4.view.GravityCompat
 import android.app.SearchManager
-import android.support.v4.widget.SearchViewCompat.setSearchableInfo
+import android.content.Context
+import android.content.Intent
 import android.view.*
 import android.support.v7.widget.SearchView
 import android.widget.ShareActionProvider
-import org.jetbrains.anko.searchManager
-import android.content.Context.SEARCH_SERVICE
-import android.support.v4.view.MenuItemCompat
-import kotlinx.coroutines.experimental.selects.select
-
 
 //TODO: Add viewpagers for variations and text info first then swipe to image1, image2 etc...
 class MainActivity : AppCompatActivity() {
@@ -33,6 +28,8 @@ class MainActivity : AppCompatActivity() {
     var mDrawerToggle: ActionBarDrawerToggle? = null
     internal var mShareActionProvider: ShareActionProvider? = null
     var expansion: String? = null
+    var noDuplicates = false
+    var query: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         println("MainActivity")
@@ -72,7 +69,7 @@ class MainActivity : AppCompatActivity() {
             if (expansion == s) {
                 supportActionBar!!.title = setName
             }
-            Log.d(TAG, setName)
+//            Log.d(TAG, setName)
             setList.add(setName)
             setListCode.add(s)
         }
@@ -90,21 +87,33 @@ class MainActivity : AppCompatActivity() {
         supportActionBar!!.setHomeButtonEnabled(true)
 
         left_drawer.setOnItemClickListener({
-            _: AdapterView<*>, view: View, i: Int, _: Long ->
+            _, view, i, _ ->
             if (view is TextView) {
-                expansion = view.text.toString()
-                Log.d(TAG, expansion)
-                supportActionBar!!.title = expansion
+                supportActionBar!!.title = view.text.toString()
                 magicCardsRecyclerView.layoutManager = LinearLayoutManager(this)
                 magicCardsRecyclerView.hasFixedSize()
-                val setCode = setListCode[i]
-                magicCardsRecyclerView.adapter = MagicCardAdapter(getSet(setCode))
+                expansion = setListCode[i]
+                magicCardsRecyclerView.adapter = MagicCardAdapter(getSet(expansion!!))
                 magicCardsRecyclerView.addItemDecoration(DividerItemDecoration(this,
                         DividerItemDecoration.VERTICAL))
             }
             drawer_layout.closeDrawer(left_drawer)
         })
     }
+
+    //Group by returns only distinct from the particular column
+    private fun searchForNameContaining(query: String) =
+        database.use {
+            if (noDuplicates) {
+                select(allSets).whereSimple("name like ? group by name", "%$query%").orderBy("name ASC").exec {
+                    parseList(rowParser)
+                }
+            } else {
+                select(allSets).whereSimple("name like ?", "%$query%").orderBy("name ASC").exec {
+                    parseList(rowParser)
+                }
+            }
+        }
 
     private fun getRandomExpansionSet() =
             database.use {
@@ -126,22 +135,36 @@ class MainActivity : AppCompatActivity() {
                     parseList(StringParser)
                 }
             }
+
+    private fun getRareOnly(setName: String?, rarity: String) =
+            database.use {
+                select(allSets).whereArgs("expansion = {exp} and (rarity = {rarity} or rarity = {mRare})",
+                        "exp" to setName!!,
+                        "rarity" to rarity,
+                        "mRare" to "Mythic Rare").orderBy("name ASC").exec {
+                    parseList(rowParser)
+                }
+    }
     val rowParser = classParser<MagicCard>()
     //TODO:
     //Contains string: SELECT * FROM 'AllSets' where manaCost like '%U%' LIMIT 0,30
 
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+    override fun onCreateOptionsMenu(menu: Menu) : Boolean {
         menuInflater.inflate(R.menu.main, menu)
-        return super.onCreateOptionsMenu(menu)
+        val searchManager = getSystemService(Context.SEARCH_SERVICE) as SearchManager
+        var searchView = menu.findItem(R.id.search).actionView as? SearchView
+//        if (searchView != null)
+            searchView?.setSearchableInfo(searchManager.getSearchableInfo(componentName))
+        return true
     }
 
     /* Called whenever we call invalidateOptionsMenu() */
-    override fun onPrepareOptionsMenu(menu: Menu): Boolean {
-        // If the nav drawer is open, hide action items related to the content view
-        val drawerOpen = drawer_layout.isDrawerOpen(left_drawer)
-        menu.findItem(R.id.action_search).isVisible = !drawerOpen
-        return super.onPrepareOptionsMenu(menu)
-    }
+//    override fun onPrepareOptionsMenu(menu: Menu): Boolean {
+//        // If the nav drawer is open, hide action items related to the content view
+//        val drawerOpen = drawer_layout.isDrawerOpen(left_drawer)
+//        menu.findItem(R.id.search).isVisible = !drawerOpen
+//        return super.onPrepareOptionsMenu(menu)
+//    }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         // The action bar home/up action should open or close the drawer.
@@ -151,20 +174,31 @@ class MainActivity : AppCompatActivity() {
         }
         // Handle action buttons
         when (item.itemId) {
-            R.id.action_search -> {
-                Log.d(TAG, "Search")
-                return true
-            }
             R.id.action_rare -> {
                 if (item.isChecked) {
                     println("Checked")
                     item.isChecked = false
-                    magicCardsRecyclerView.adapter = MagicCardAdapter(getSet(expansion!!))
+                    updateAdapters(getSet(expansion!!))
                 } else {
                     println("unchecked")
                     item.isChecked = true
-                    updateListAdapter(expansion!!, "Rare")
+                    println(expansion)
+                    updateAdapters(getRareOnly(expansion!!, "Rare"))
                 }
+                return true
+            }
+            R.id.action_remove_duplicates -> {
+                if (item.isChecked) {
+                    println("Checked")
+                    item.isChecked = false
+                } else {
+                    println("unchecked")
+                    item.isChecked = true
+                    println(expansion)
+                }
+                noDuplicates = item.isChecked
+                val output = query?.let { searchForNameContaining(it) }
+                output?.let { updateAdapters(it) }
                 return true
             }
             else -> return super.onOptionsItemSelected(item)
@@ -177,15 +211,26 @@ class MainActivity : AppCompatActivity() {
         (mDrawerToggle as ActionBarDrawerToggle).syncState()
     }
 
-    fun updateListAdapter(setName: String?, rarity: String) {
-        val newList =
-                database.use {
-                    select(allSets).whereSimple("expansion=? and rarity=?", setName!!, rarity).orderBy("name ASC").exec {
-                        parseList(rowParser)
-                    }
-                }
-        magicCardsRecyclerView.adapter = MagicCardAdapter(newList)
+    override fun onNewIntent(intent: Intent) {
+        println("onNewIntent")
+        super.onNewIntent(intent)
+        handleIntent(intent)
+    }
 
+    private fun handleIntent(intent: Intent) {
+        println("handleIntent")
+        if (intent.action == Intent.ACTION_SEARCH) {
+            query = intent.getStringExtra(SearchManager.QUERY)
+            val output = query?.let { searchForNameContaining(it) }
+//            output.forEach { println(it.name) }
+            output?.let { updateAdapters(it) }
+        }
+    }
+
+    private fun updateAdapters(cardList: List<MagicCard>) {
+        magicCardsRecyclerView.adapter = null
+        magicCardsRecyclerView.adapter = MagicCardAdapter(cardList)
+        magicCardsRecyclerView.adapter.notifyDataSetChanged()
     }
 }
 
