@@ -1,5 +1,6 @@
 package com.example.jptalusan.kotlintutorial
 
+import android.app.ProgressDialog
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
@@ -11,20 +12,33 @@ import org.jetbrains.anko.intentFor
 import org.json.JSONObject
 import org.json.JSONStringer
 import java.io.IOException
+import android.net.NetworkInfo
+import android.net.ConnectivityManager
+import org.jetbrains.anko.doAsync
+import org.jetbrains.anko.progressDialog
+import org.jetbrains.anko.uiThread
+import java.net.HttpURLConnection
+import java.net.MalformedURLException
+import java.net.URL
+
 
 class SplashActivity : AppCompatActivity() {
     val TAG = "Splash"
     var url: String? = null
     var prefs: SharedPreferences? = null
     val PREFS_FILENAME = "com.teamtreehouse.colorsarefun.prefs"
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_splash)
         //TODO: check if database is present so as not to parse again
+        val dialog = progressDialog(message = "Please wait a bit…", title = "Fetching data")
+        dialog.setCancelable(false)
+        dialog.setCanceledOnTouchOutside(false)
+        dialog.show()
         if (!doesDatabaseExist(this, database.databaseName)) {
             parseJSONFile("allsets")
         }
+        dialog.cancel()
 
         startActivity(intentFor<MainActivity>())
         finish()
@@ -79,6 +93,7 @@ class SplashActivity : AppCompatActivity() {
                 var cardText: String? = ""
                 var variations: String? = ""
                 var multiverseid: String? = "0"
+                var number: String? = ""
 
                 if (cards.getJSONObject(j).has("name"))
                     cardName = cards.getJSONObject(j).getString("name")
@@ -121,19 +136,19 @@ class SplashActivity : AppCompatActivity() {
                     variations = cards.getJSONObject(j).getString("variations")
                 }
 
-                if (mciNumber != "0")
-                    url = "http://magiccards.info/scans/en/$infoCode/$mciNumber.jpg"
-                else
-                    url = "http://gatherer.wizards.com/Handlers/Image.ashx?multiverseid=$multiverseid&type=card"
-
+                if (cards.getJSONObject(j).has("number")) {
+                    number = cards.getJSONObject(j).getString("number")
+                }
 
                 database.use {
                     insert(allSets,
                             "id" to mciNumber,
+                            "infoCode" to infoCode,
                             "expansion" to expansionCode,
                             "name" to cardName,
                             "manaCost" to manaCost,
-                            "imageUrl" to url,
+                            "multiverseid" to multiverseid,
+                            "number" to number,
                             "power" to power,
                             "toughness" to toughness,
                             "type" to type,

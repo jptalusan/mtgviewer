@@ -21,10 +21,12 @@ class MyDatabaseOpenHelper(ctx: Context) : ManagedSQLiteOpenHelper(ctx, "MTGData
         db.createTable(allSets, ifNotExists = true,
                 columns = *arrayOf(
                         "id" to TEXT,
+                        "infoCode" to TEXT,
                         "expansion" to TEXT,
                         "name" to TEXT,
                         "manaCost" to TEXT,
-                        "imageUrl" to TEXT,
+                        "multiverseid" to TEXT,
+                        "number" to TEXT,
                         "power" to TEXT,
                         "toughness" to TEXT,
                         "type" to TEXT,

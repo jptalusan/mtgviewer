@@ -18,6 +18,7 @@ import android.content.Intent
 import android.view.*
 import android.support.v7.widget.SearchView
 import android.widget.ShareActionProvider
+import kotlinx.coroutines.experimental.selects.select
 
 //TODO: Add viewpagers for variations and text info first then swipe to image1, image2 etc...
 class MainActivity : AppCompatActivity() {
@@ -29,6 +30,7 @@ class MainActivity : AppCompatActivity() {
     internal var mShareActionProvider: ShareActionProvider? = null
     var expansion: String? = null
     var noDuplicates = false
+    var artistSearch = false
     var query: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -46,7 +48,7 @@ class MainActivity : AppCompatActivity() {
 
             override fun onDrawerOpened(drawerView: View) {
                 drawer_layout.setDrawerTitle(Gravity.START, "Expansion Sets")
-                invalidateOptionsMenu(); // creates call to onPrepareOptionsMenu()
+                invalidateOptionsMenu() // creates call to onPrepareOptionsMenu()
             }
         }
 
@@ -129,6 +131,20 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
+    private fun getAllByArtist(artistName: String) =
+            database.use {
+                if (noDuplicates) {
+                    select(allSets).whereSimple("artist like ? group by name", "%$artistName%").orderBy("name ASC").exec {
+                        parseList(rowParser)
+                    }
+                } else {
+                    select(allSets).whereSimple("artist like ?", "%$artistName%").orderBy("name ASC").exec {
+                        parseList(rowParser)
+                    }
+                }
+            }
+
+
     private fun getSetsList() =
             database.use {
                 select(allSets, "expansion").distinct().exec {
@@ -157,14 +173,6 @@ class MainActivity : AppCompatActivity() {
             searchView?.setSearchableInfo(searchManager.getSearchableInfo(componentName))
         return true
     }
-
-    /* Called whenever we call invalidateOptionsMenu() */
-//    override fun onPrepareOptionsMenu(menu: Menu): Boolean {
-//        // If the nav drawer is open, hide action items related to the content view
-//        val drawerOpen = drawer_layout.isDrawerOpen(left_drawer)
-//        menu.findItem(R.id.search).isVisible = !drawerOpen
-//        return super.onPrepareOptionsMenu(menu)
-//    }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         // The action bar home/up action should open or close the drawer.
@@ -197,8 +205,24 @@ class MainActivity : AppCompatActivity() {
                     println(expansion)
                 }
                 noDuplicates = item.isChecked
-                val output = query?.let { searchForNameContaining(it) }
-                output?.let { updateAdapters(it) }
+                if (artistSearch) {
+                    val output = query?.let { getAllByArtist(it) }
+                    output?.let { updateAdapters(it) }
+                } else {
+                    val output = query?.let { searchForNameContaining(it) }
+                    output?.let { updateAdapters(it) }
+                }
+                return true
+            }
+            R.id.action_artists -> {
+                if (item.isChecked) {
+                    println("Checked")
+                    item.isChecked = false
+                } else {
+                    println("unchecked")
+                    item.isChecked = true
+                }
+                artistSearch = item.isChecked
                 return true
             }
             else -> return super.onOptionsItemSelected(item)
@@ -221,9 +245,14 @@ class MainActivity : AppCompatActivity() {
         println("handleIntent")
         if (intent.action == Intent.ACTION_SEARCH) {
             query = intent.getStringExtra(SearchManager.QUERY)
-            val output = query?.let { searchForNameContaining(it) }
+            if (!artistSearch) {
+                val output = query?.let { searchForNameContaining(it) }
 //            output.forEach { println(it.name) }
-            output?.let { updateAdapters(it) }
+                output?.let { updateAdapters(it) }
+            } else {
+                val output = query?.let { getAllByArtist(it) }
+                output?.let { updateAdapters(it) }
+            }
         }
     }
 

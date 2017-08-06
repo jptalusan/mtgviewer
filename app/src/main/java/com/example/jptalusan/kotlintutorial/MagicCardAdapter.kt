@@ -28,23 +28,23 @@ class MagicCardAdapter(var cardList: List<MagicCard>)
             selectedPosition = position
             notifyDataSetChanged()
 
-            parent.context.startActivity<MagicCardImage>("url" to cardList[position].imageUrl)
+            parent.context.startActivity<MagicCardImage> (
+                    "magicCard" to cardList[position]
+//                    "infoCode"      to cardList[position].infoCode,
+//                    "expansion"     to cardList[position].expansion,
+//                    "id"            to cardList[position].id,
+//                    "multiverseid"  to cardList[position].multiverseid
+            )
         }
     }
 
     override fun onBindViewHolder(holder: ViewHolder?, position: Int) {
-
         if(selectedPosition == position) {
             holder!!.itemView.backgroundColor = Color.parseColor("#000000CC")
         } else {
             holder!!.itemView.backgroundColor = Color.parseColor("#ffffff")
         }
-
-        holder.bindData(
-                        cardList[position]
-                )
-
-
+        holder.bindData(cardList[position])
     }
 
     override fun getItemCount(): Int {
