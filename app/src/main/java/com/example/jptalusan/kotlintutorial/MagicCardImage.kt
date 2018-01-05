@@ -17,7 +17,7 @@ class MagicCardImage : AppCompatActivity() {
 
         var defaultUrl = "https://img.scryfall.com/cards/normal/en/${magicCard.expansion.toLowerCase()}/${magicCard.number}.jpg"
         if (magicCard.number.isEmpty()) {
-            defaultUrl = "http://magiccards.info/scans/en/${magicCard.infoCode}/${magicCard.id}.jpg"
+            defaultUrl = "https://magiccards.info/scans/en/${magicCard.infoCode}/${magicCard.id}.jpg"
         }
         println(defaultUrl)
         Picasso.with(applicationContext)
@@ -25,5 +25,7 @@ class MagicCardImage : AppCompatActivity() {
                 .placeholder(R.drawable.testing)
                 .error(R.mipmap.ic_launcher_round)
                 .into(imageView)
+
+        //Infocode to switch to magiccards.info --> "pro"
     }
 }

@@ -14,6 +14,8 @@ import org.json.JSONStringer
 import java.io.IOException
 import android.net.NetworkInfo
 import android.net.ConnectivityManager
+import android.support.v4.app.Fragment
+import android.support.v4.app.FragmentManager
 import org.jetbrains.anko.doAsync
 import org.jetbrains.anko.progressDialog
 import org.jetbrains.anko.uiThread
@@ -27,9 +29,16 @@ class SplashActivity : AppCompatActivity() {
     var url: String? = null
     var prefs: SharedPreferences? = null
     val PREFS_FILENAME = "com.teamtreehouse.colorsarefun.prefs"
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_splash)
+
+        //Debug
+//        startActivity(intentFor<ViewPagerTuts>())
+        //End debug uncomment below
+
+
         //TODO: check if database is present so as not to parse again
         val dialog = progressDialog(message = "Please wait a bit…", title = "Fetching data")
         dialog.setCancelable(false)
@@ -42,6 +51,8 @@ class SplashActivity : AppCompatActivity() {
 
         startActivity(intentFor<MainActivity>())
         finish()
+        
+
     }
 
     fun loadJSONFromAsset(fileName: String) : String? {
