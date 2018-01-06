@@ -11,7 +11,7 @@ class MyDatabaseOpenHelper(ctx: Context) : ManagedSQLiteOpenHelper(ctx, "MTGData
         @Synchronized
         fun getInstance(ctx: Context): MyDatabaseOpenHelper {
             if (instance == null) {
-                instance = MyDatabaseOpenHelper(ctx.getApplicationContext())
+                instance = MyDatabaseOpenHelper(ctx.applicationContext)
             }
             return instance!!
         }
@@ -20,27 +20,28 @@ class MyDatabaseOpenHelper(ctx: Context) : ManagedSQLiteOpenHelper(ctx, "MTGData
     override fun onCreate(db: SQLiteDatabase) {
         db.createTable(allSets, ifNotExists = true,
                 columns = *arrayOf(
-                        "id" to TEXT,
-                        "infoCode" to TEXT,
-                        "expansion" to TEXT,
-                        "name" to TEXT,
+                        "setCode" to TEXT,
+                        "magicCardsInfoCode" to TEXT,
+                        "artist" to TEXT,
+                        "flavor" to BLOB,
                         "manaCost" to TEXT,
                         "multiverseid" to TEXT,
+                        "name" to TEXT,
                         "number" to TEXT,
                         "power" to TEXT,
                         "toughness" to TEXT,
-                        "type" to TEXT,
-                        "artist" to TEXT,
-                        "flavor" to BLOB,
-                        "text" to BLOB,
                         "rarity" to TEXT,
-                        "variations" to TEXT)
+                        "text" to BLOB,
+                        "mciNumber" to TEXT,
+                        "types" to TEXT,
+                        "variations" to TEXT
+                )
         )
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
         // Here you can upgrade tables, as usual
-        db.dropTable("LEA", true)
+        db.dropTable(allSets, true)
     }
 }
 

@@ -18,7 +18,16 @@ import android.content.Intent
 import android.view.*
 import android.support.v7.widget.SearchView
 import android.widget.ShareActionProvider
+import com.example.jptalusan.kotlintutorial.R.id.magicCardsRecyclerView
+import com.fasterxml.jackson.databind.DeserializationFeature
+import com.fasterxml.jackson.databind.node.ObjectNode
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
 import kotlinx.coroutines.experimental.selects.select
+import org.jetbrains.anko.doAsync
+import org.jetbrains.anko.intentFor
+import org.jetbrains.anko.uiThread
+import java.net.URL
 
 //TODO: Add viewpagers for variations and text info first then swipe to image1, image2 etc...
 class MainActivity : AppCompatActivity() {
@@ -43,7 +52,7 @@ class MainActivity : AppCompatActivity() {
         mDrawerToggle = object : ActionBarDrawerToggle(this, drawer_layout, R.string.app_name, R.string.app_name) {
             override fun onDrawerClosed(drawerView: View) {
                 drawer_layout.setDrawerTitle(Gravity.START, "Expansion Sets")
-                invalidateOptionsMenu(); // creates call to onPrepareOptionsMenu()
+                invalidateOptionsMenu() // creates call to onPrepareOptionsMenu()
             }
 
             override fun onDrawerOpened(drawerView: View) {
@@ -51,7 +60,7 @@ class MainActivity : AppCompatActivity() {
                 invalidateOptionsMenu() // creates call to onPrepareOptionsMenu()
             }
         }
-
+//
         (mDrawerToggle as ActionBarDrawerToggle).toolbarNavigationClickListener = View.OnClickListener {
             if (drawer_layout.isDrawerOpen(GravityCompat.START)) {
                 drawer_layout.closeDrawer(GravityCompat.START)
@@ -60,33 +69,20 @@ class MainActivity : AppCompatActivity() {
             }
         }
         drawer_layout.addDrawerListener(mDrawerToggle as ActionBarDrawerToggle)
-//        (mDrawerToggle as ActionBarDrawerToggle).syncState()
+        (mDrawerToggle as ActionBarDrawerToggle).syncState()
 
-        val prefs = this.getSharedPreferences(PREFS_FILENAME, 0)
-
-        val setList: MutableList<String> = mutableListOf("")
-        expansion = getRandomExpansionSet()
-        for (s in getSetsList()) {
-            val setName = prefs.getString(s, "")
-            if (expansion == s) {
-                supportActionBar!!.title = setName
-            }
-//            Log.d(TAG, setName)
-            setList.add(setName)
-            setListCode.add(s)
-        }
-
-        magicCardsRecyclerView.layoutManager = LinearLayoutManager(this)
-        magicCardsRecyclerView.hasFixedSize()
-        magicCardsRecyclerView.adapter = MagicCardAdapter(getSet(expansion!!))
-        magicCardsRecyclerView.addItemDecoration(DividerItemDecoration(this,
-                DividerItemDecoration.VERTICAL))
-
-        left_drawer.adapter = ArrayAdapter<String>(this, R.layout.drawer_list_item, setList)
-
+//        //Populating the drawer
+        val setList = getSetList()
+        val setNameList: MutableList<String> = mutableListOf("")
+        setList.forEach { setNameList.add(it.name) }
+        left_drawer.adapter = ArrayAdapter<String>(this, R.layout.drawer_list_item, setNameList)
+//
         drawer_layout.setDrawerShadow(R.drawable.drawer_shadow, 0)
         supportActionBar!!.setDisplayHomeAsUpEnabled(true)
         supportActionBar!!.setHomeButtonEnabled(true)
+
+        magicCardsRecyclerView.addItemDecoration(DividerItemDecoration(this,
+                DividerItemDecoration.VERTICAL))
 
         left_drawer.setOnItemClickListener({
             _, view, i, _ ->
@@ -94,76 +90,148 @@ class MainActivity : AppCompatActivity() {
                 supportActionBar!!.title = view.text.toString()
                 magicCardsRecyclerView.layoutManager = LinearLayoutManager(this)
                 magicCardsRecyclerView.hasFixedSize()
-                expansion = setListCode[i]
-                magicCardsRecyclerView.adapter = MagicCardAdapter(getSet(expansion!!))
-                magicCardsRecyclerView.addItemDecoration(DividerItemDecoration(this,
-                        DividerItemDecoration.VERTICAL))
+//                expansion = setListCode[i]
+                val code = setList[i - 1].code
+                expansion = code
+                println(code)
+                if (!checkIfAlreadyDownloaded(code)) {
+                    saveSetDetailsToDB(code)
+                } else {
+//                    magicCardsRecyclerView.adapter = MagicCardAdapter(getSet(code))
+                    updateAdapters(getSet(code))
+                }
             }
             drawer_layout.closeDrawer(left_drawer)
         })
     }
 
+    private fun saveSetDetailsToDB(code: String) {
+        val mapper = jacksonObjectMapper()
+
+        val prefs = this.getSharedPreferences(PREFS_FILENAME, 0)
+        doAsync {
+            //Do some Network Request
+            val result = URL("https://mtgjson.com/json/$code.json").readText()
+            val stringBuilder = StringBuilder(result)
+
+            mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+            mapper.configure(DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT, true)
+            mapper.configure( DeserializationFeature.ACCEPT_EMPTY_ARRAY_AS_NULL_OBJECT, true )
+            val setDetails = mapper.readValue<SetDetails>(stringBuilder.toString())
+            println(setDetails.name)
+
+            val cardList = setDetails.cards
+            cardList.sortedBy { it.mciNumber }.forEach {
+                //                println(it.name)
+                database.use {
+                    insert(allSets,
+                            "setCode" to setDetails.code,
+                            "magicCardsInfoCode" to setDetails.magicCardsInfoCode,
+                            "artist" to it.artist,
+                            "flavor" to it.flavor,
+                            "manaCost" to it.manaCost,
+                            "multiverseid" to it.multiverseid,
+                            "name" to it.name,
+                            "number" to it.number,
+                            "power" to it.power,
+                            "toughness" to it.toughness,
+                            "rarity" to it.rarity,
+                            "text" to it.text,
+                            "mciNumber" to it.mciNumber,
+                            "types" to it.types.toString(),
+                            "variations" to it.variations.toString()
+                    )
+                }
+            }
+            // Call all operation  related to network or other ui blocking operations here.
+            uiThread {
+                // perform all ui related operation here
+
+                val set = getSet(code)
+                updateDownloadedFlag(code)
+                updateAdapters(set)
+//                println(getSet(code)[0].name)
+            }
+        }
+//        Thread({
+//
+//        }).start()
+    }
+
+    private fun updateDownloadedFlag(code: String) {
+        setListDatabase.use {
+            update(SetList, "downloaded" to "True")
+                .whereSimple("code=?", code).exec()
+        }
+    }
+
+    private fun getSetList() =
+            setListDatabase.use {
+                select(SetList).exec {
+                    parseList(setListParser)
+                }
+            }
+
+    private fun checkIfAlreadyDownloaded(code: String): Boolean {
+        val downloaded = setListDatabase.use {
+            select(SetList, "downloaded").whereSimple("code=?", code).exec {
+                parseList(StringParser)
+            }
+        }
+        println(downloaded)
+        if (downloaded.isNotEmpty()) {
+            println(downloaded)
+            return downloaded[0] == "True"
+        }
+        return false
+    }
+
+        private fun getSet(code: String) =
+            database.use {
+                select(allSets).whereSimple("setCode=?", code).orderBy("mciNumber ASC").exec {
+                    parseList(cardListParser)
+                }
+            }
+
     //Group by returns only distinct from the particular column
     private fun searchForNameContaining(query: String) =
         database.use {
             if (noDuplicates) {
-                select(allSets).whereSimple("name like ? group by name", "%$query%").orderBy("name ASC").exec {
-                    parseList(rowParser)
+                select(allSets).whereSimple("name like ? group by name", "%$query%").orderBy("mciNumber ASC").exec {
+                    parseList(cardListParser)
                 }
             } else {
-                select(allSets).whereSimple("name like ?", "%$query%").orderBy("name ASC").exec {
-                    parseList(rowParser)
+                select(allSets).whereSimple("name like ?", "%$query%").orderBy("mciNumber ASC").exec {
+                    parseList(cardListParser)
                 }
             }
         }
 
-    private fun getRandomExpansionSet() =
-            database.use {
-                select(allSets, "expansion").distinct().orderBy("RANDOM()").limit(1).exec {
-                    parseSingle(StringParser)
-                }
-            }
-
-    private fun getSet(setName: String) =
-            database.use {
-                select(allSets).whereSimple("expansion=?", setName).orderBy("name ASC").exec {
-                    parseList(rowParser)
-                }
-            }
-
     private fun getAllByArtist(artistName: String) =
             database.use {
                 if (noDuplicates) {
-                    select(allSets).whereSimple("artist like ? group by name", "%$artistName%").orderBy("name ASC").exec {
-                        parseList(rowParser)
+                    select(allSets).whereSimple("artist like ? group by name", "%$artistName%").orderBy("mciNumber ASC").exec {
+                        parseList(cardListParser)
                     }
                 } else {
-                    select(allSets).whereSimple("artist like ?", "%$artistName%").orderBy("name ASC").exec {
-                        parseList(rowParser)
+                    select(allSets).whereSimple("artist like ?", "%$artistName%").orderBy("mciNumber ASC").exec {
+                        parseList(cardListParser)
                     }
                 }
             }
 
-
-    private fun getSetsList() =
+    private fun getRareOnly(code: String, rarity: String) =
             database.use {
-                select(allSets, "expansion").distinct().exec {
-                    parseList(StringParser)
-                }
-            }
-
-    private fun getRareOnly(setName: String?, rarity: String) =
-            database.use {
-                select(allSets).whereArgs("expansion = {exp} and (rarity = {rarity} or rarity = {mRare})",
-                        "exp" to setName!!,
+                select(allSets).whereArgs("setCode = {exp} and (rarity = {rarity} or rarity = {mRare})",
+                        "exp" to code!!,
                         "rarity" to rarity,
-                        "mRare" to "Mythic Rare").orderBy("name ASC").exec {
-                    parseList(rowParser)
+                        "mRare" to "Mythic Rare").orderBy("mciNumber ASC").exec {
+                    parseList(cardListParser)
                 }
     }
-    val rowParser = classParser<MagicCard>()
-    //TODO:
-    //Contains string: SELECT * FROM 'AllSets' where manaCost like '%U%' LIMIT 0,30
+
+    val setListParser = classParser<Set>()
+    val cardListParser = classParser<CardsWithExpansion>()
 
     override fun onCreateOptionsMenu(menu: Menu) : Boolean {
         menuInflater.inflate(R.menu.main, menu)
@@ -256,18 +324,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun updateAdapters(cardList: List<MagicCard>) {
+    private fun updateAdapters(cardList: List<CardsWithExpansion>) {
         magicCardsRecyclerView.adapter = null
         magicCardsRecyclerView.adapter = MagicCardAdapter(cardList)
         magicCardsRecyclerView.adapter.notifyDataSetChanged()
     }
-}
-
-class MyRowParser : RowParser<Triple<Int, String, String>> {
-    override fun parseRow(columns: Array<Any?>): Triple<Int, String, String> {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
-//    override fun parseRow(columns: Array<Any>): Triple<Int, String, String> {
-//        return Triple(columns[0] as Int, columns[1] as String, columns[2] as String)
-//    }
 }

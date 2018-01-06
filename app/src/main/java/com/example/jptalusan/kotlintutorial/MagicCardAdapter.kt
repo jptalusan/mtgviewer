@@ -15,7 +15,7 @@ import org.jetbrains.anko.backgroundColor
 import org.jetbrains.anko.startActivity
 import org.jetbrains.anko.toast
 
-class MagicCardAdapter(var cardList: List<MagicCard>)
+class MagicCardAdapter(var cardList: List<CardsWithExpansion>)
     : RecyclerView.Adapter<MagicCardAdapter.ViewHolder>() {
 
     var selectedPosition = -1
@@ -29,11 +29,8 @@ class MagicCardAdapter(var cardList: List<MagicCard>)
             notifyDataSetChanged()
 
             parent.context.startActivity<MagicCardImage> (
-                    "magicCard" to cardList[position]
-//                    "infoCode"      to cardList[position].infoCode,
-//                    "expansion"     to cardList[position].expansion,
-//                    "id"            to cardList[position].id,
-//                    "multiverseid"  to cardList[position].multiverseid
+                    "magicCardList" to cardList,
+                    "position" to selectedPosition
             )
         }
     }
@@ -53,14 +50,14 @@ class MagicCardAdapter(var cardList: List<MagicCard>)
 
     class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
 
-        fun bindData(magicCard: MagicCard)
+        fun bindData(magicCard: CardsWithExpansion)
         {
-            itemView.name.text = magicCard.name;
-            itemView.type.text = magicCard.type;
-            itemView.cost.text = magicCard.manaCost.replace("{","").replace("}","");
-            itemView.text.text = magicCard.text;
+            itemView.name.text = magicCard.name
+            itemView.type.text = magicCard.types
+            itemView.cost.text = magicCard.manaCost.replace("{","").replace("}","")
+            itemView.text.text = magicCard.text
             var stat: String? = ""
-            if (magicCard.type.contains("Creature")) {
+            if (magicCard.types.contains("Creature")) {
                 stat = magicCard.power + "/" + magicCard.toughness
             }
             itemView.stats.text = stat

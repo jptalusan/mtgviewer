@@ -8,22 +8,45 @@ import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import org.jetbrains.anko.db.*
-import org.jetbrains.anko.intentFor
 import org.json.JSONObject
 import org.json.JSONStringer
 import java.io.IOException
 import android.net.NetworkInfo
 import android.net.ConnectivityManager
+import android.provider.SyncStateContract.Helpers.insert
 import android.support.v4.app.Fragment
 import android.support.v4.app.FragmentManager
-import org.jetbrains.anko.doAsync
-import org.jetbrains.anko.progressDialog
-import org.jetbrains.anko.uiThread
+import android.widget.Toast
+import com.fasterxml.jackson.annotation.JsonView
+import com.fasterxml.jackson.databind.DeserializationFeature
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
+import org.json.JSONArray
 import java.net.HttpURLConnection
 import java.net.MalformedURLException
 import java.net.URL
+import com.fasterxml.jackson.core.JsonProcessingException
+import com.fasterxml.jackson.databind.SerializerProvider
+import com.fasterxml.jackson.core.JsonGenerator
+import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.JsonSerializer
+import com.fasterxml.jackson.databind.annotation.JsonSerialize
+import com.fasterxml.jackson.databind.node.ObjectNode
+import kotlinx.coroutines.experimental.selects.select
+import org.jetbrains.anko.*
+import java.text.SimpleDateFormat
+import java.util.*
+import kotlin.collections.ArrayList
 
+class StringToDateTime : JsonSerializer<String>() {
+    @Throws(IOException::class, JsonProcessingException::class)
+    override fun serialize(value: String?, gen: JsonGenerator?, serializers: SerializerProvider?) {
+        val df = SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH)
+        gen!!.writeObject(df.parse(value!!))
+    }
+}
 
+//Preload the list of sets (download if not existing, update if old version or continue)
 class SplashActivity : AppCompatActivity() {
     val TAG = "Splash"
     var url: String? = null
@@ -40,19 +63,100 @@ class SplashActivity : AppCompatActivity() {
 
 
         //TODO: check if database is present so as not to parse again
-        val dialog = progressDialog(message = "Please wait a bit…", title = "Fetching data")
-        dialog.setCancelable(false)
-        dialog.setCanceledOnTouchOutside(false)
-        dialog.show()
-        if (!doesDatabaseExist(this, database.databaseName)) {
-            parseJSONFile("allsets")
+//        val dialog = progressDialog(message = "Please wait a bit…", title = "Fetching data")
+//        dialog.setCancelable(false)
+//        dialog.setCanceledOnTouchOutside(false)
+//        dialog.show()
+//        if (!doesDatabaseExist(this, database.databaseName)) {
+//            parseJSONFile("allsets")
+//        }
+//        dialog.cancel()
+//
+//        startActivity(intentFor<MainActivity>())
+//        finish()
+
+        //klaxon test
+
+        if (isNetworkConnected(this) && !doesDatabaseExist(this, setListDatabase.databaseName)) {
+            println("Downloading fresh copy")
+            downloadSetList()
+
+        } else if (!isNetworkConnected(this) && !doesDatabaseExist(this, setListDatabase.databaseName)) {
+            toast("Connect to the internet first.")
+        } else if (!isNetworkConnected(this) && doesDatabaseExist(this, setListDatabase.databaseName)) { //use currently existing database
+            println("Continue with current database")
+        } else if (isNetworkConnected(this) && doesDatabaseExist(this, setListDatabase.databaseName)) {
+            val mapper = jacksonObjectMapper()
+            Thread({
+                val prefs = this.getSharedPreferences(PREFS_FILENAME, 0)
+                val currVer = prefs!!.getString("version", "")
+
+                //Do some Network Request
+                //Check if the version has changed if yes, download new one
+                val version = URL("https://mtgjson.com/json/version-full.json").readText()
+                val ver = mapper.readValue<ObjectNode>(version)
+
+                val newVer = ver.get("version").toString()
+                println(newVer)
+                prefs.edit().putString("version", newVer).apply()
+
+                if (versionCompare(newVer, currVer) > 0) {
+                    //Download again
+                    setListDatabase.use {
+                        dropTable(SetList, true)
+                    }
+                    downloadSetList()
+                } else {
+                    println("Still up to date")
+
+                    startActivity(intentFor<MainActivity>())
+                    finish()
+                }
+            }).start()
+        } else {
+            //do nothing
         }
-        dialog.cancel()
+        //end klaxon test
 
-        startActivity(intentFor<MainActivity>())
-        finish()
-        
+    }
 
+    fun downloadSetList() {
+
+        val mapper = jacksonObjectMapper()
+        Thread({
+            val prefs = this.getSharedPreferences(PREFS_FILENAME, 0)
+            //Do some Network Request
+            //Check if the version has changed if yes, download new one
+            val version = URL("https://mtgjson.com/json/version-full.json").readText()
+            val ver = mapper.readValue<ObjectNode>(version)
+
+            val currVer = prefs!!.getString("version", "")
+            val newVer = ver.get("version").toString()
+            println(newVer)
+            prefs.edit().putString("version", newVer).apply()
+
+            val result = URL("https://mtgjson.com/json/SetList.json").readText()
+            val stringBuilder = StringBuilder(result)
+
+            mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+            mapper.configure(DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT, true)
+            val sets = mapper.readValue<List<Set>>(stringBuilder.toString())
+
+            println("Conversion finished!")
+            sets.sortedWith(CompareSetReleaseDates).forEach {
+                println(it.name)
+                setListDatabase.use {
+                    insert(SetList,
+                            "name" to it.name,
+                            "code" to it.code,
+                            "releaseDate" to it.releaseDate,
+                            "block" to it.block,
+                            "downloaded" to "False")
+                }
+            }
+            startActivity(intentFor<MainActivity>())
+            finish()
+        }).start()
     }
 
     fun loadJSONFromAsset(fileName: String) : String? {
