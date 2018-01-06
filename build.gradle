@@ -30,7 +30,7 @@ task clean(type: Delete) {
 
 ext {
     versions = [
-            support_lib: '26.0.2',
+            support_lib: '26.1.0',
             dagger     : '2.11',
             arch_comp  : '1.0.0-alpha7',
             anko       : '0.10.1'
