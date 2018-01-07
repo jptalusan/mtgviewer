@@ -26,7 +26,7 @@ data class Cards (
         val rarity: String,
         val text: String = "",
         val toughness: String = "",
-        val mciNumber: Int = 0,
+        val mciNumber: String = "",
         val variations: List<Int> = arrayListOf(),
         val types: List<String> = arrayListOf(),
         val colors: List<String> = listOf("Colorless")

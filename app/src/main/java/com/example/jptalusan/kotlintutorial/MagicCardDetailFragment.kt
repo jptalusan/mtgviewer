@@ -75,16 +75,19 @@ class MagicCardDetailFragment : Fragment() {
     }
 
     private fun getDefaultUrl(magicCard: CardsWithExpansion): String {
-        val defaultUrl: String
-        if (magicCard.magicCardsInfoCode.isEmpty() && magicCard.mciNumber != ("0")) {
-            defaultUrl = "https://img.scryfall.com/cards/normal/en/${magicCard.setCode.toLowerCase()}/${magicCard.mciNumber}.jpg"
-        } else if (magicCard.magicCardsInfoCode.isNotEmpty() && magicCard.mciNumber !=("0")) {
-            defaultUrl = "https://magiccards.info/scans/en/${magicCard.magicCardsInfoCode}/${magicCard.mciNumber}.jpg"
+        var defaultUrl = ""
+        if (magicCard.mciNumber.isNotEmpty() && magicCard.mciNumber != ("0")) {
+            if (magicCard.magicCardsInfoCode.isEmpty()) {
+                defaultUrl = "https://img.scryfall.com/cards/normal/en/${magicCard.setCode.toLowerCase()}/${magicCard.mciNumber}.jpg"
+            } else if (magicCard.magicCardsInfoCode.isNotEmpty()) {
+                defaultUrl = "https://magiccards.info/scans/en/${magicCard.magicCardsInfoCode}/${magicCard.mciNumber}.jpg"
+            }
         } else {
             var mid = magicCard.multiverseid
             mid = mid.dropLast(2)
             defaultUrl = "http://gatherer.wizards.com/Handlers/Image.ashx?multiverseid=${mid}&type=card"
         }
+//        println(defaultUrl)
         return defaultUrl
     }
 
