@@ -1,8 +1,7 @@
-package com.example.jptalusan.kotlintutorial
+package com.example.jptalusan.kotlintutorial.Databases
 
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
-import android.provider.SyncStateContract.Helpers.update
 import org.jetbrains.anko.db.*
 
 class SetListDatabase(ctx: Context) : ManagedSQLiteOpenHelper(ctx, "MTGSetListDatabase", null, 1) {

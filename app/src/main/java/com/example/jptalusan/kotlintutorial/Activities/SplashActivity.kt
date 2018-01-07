@@ -1,42 +1,21 @@
-package com.example.jptalusan.kotlintutorial
+package com.example.jptalusan.kotlintutorial.Activities
 
-import android.app.ProgressDialog
 import android.content.Context
-import android.content.Intent
 import android.content.SharedPreferences
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
-import android.util.Log
+import com.example.jptalusan.kotlintutorial.*
+import com.example.jptalusan.kotlintutorial.Databases.SetList
+import com.example.jptalusan.kotlintutorial.Databases.setListDatabase
 import org.jetbrains.anko.db.*
-import org.json.JSONObject
-import org.json.JSONStringer
-import java.io.IOException
-import android.net.NetworkInfo
-import android.net.ConnectivityManager
-import android.provider.SyncStateContract.Helpers.insert
-import android.support.v4.app.Fragment
-import android.support.v4.app.FragmentManager
-import android.widget.Toast
-import com.fasterxml.jackson.annotation.JsonView
+import com.example.jptalusan.kotlintutorial.MTGClasses.CompareSetReleaseDates
+import com.example.jptalusan.kotlintutorial.MTGClasses.Set
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
-import org.json.JSONArray
-import java.net.HttpURLConnection
-import java.net.MalformedURLException
 import java.net.URL
-import com.fasterxml.jackson.core.JsonProcessingException
-import com.fasterxml.jackson.databind.SerializerProvider
-import com.fasterxml.jackson.core.JsonGenerator
-import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.JsonSerializer
-import com.fasterxml.jackson.databind.annotation.JsonSerialize
 import com.fasterxml.jackson.databind.node.ObjectNode
-import kotlinx.coroutines.experimental.selects.select
 import org.jetbrains.anko.*
-import java.text.SimpleDateFormat
-import java.util.*
-import kotlin.collections.ArrayList
 
 //Preload the list of sets (download if not existing, update if old version or continue)
 class SplashActivity : AppCompatActivity() {
@@ -117,7 +96,7 @@ class SplashActivity : AppCompatActivity() {
 
             println("Conversion finished!")
             sets.sortedWith(CompareSetReleaseDates).forEach {
-                println(it.name)
+//                println(it.name)
                 setListDatabase.use {
                     insert(SetList,
                             "name" to it.name,

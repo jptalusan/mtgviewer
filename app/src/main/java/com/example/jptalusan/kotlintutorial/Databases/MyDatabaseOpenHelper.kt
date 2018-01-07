@@ -1,4 +1,4 @@
-package com.example.jptalusan.kotlintutorial
+package com.example.jptalusan.kotlintutorial.Databases
 
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
@@ -34,7 +34,8 @@ class MyDatabaseOpenHelper(ctx: Context) : ManagedSQLiteOpenHelper(ctx, "MTGData
                         "text" to BLOB,
                         "mciNumber" to TEXT,
                         "types" to TEXT,
-                        "variations" to TEXT
+                        "variations" to TEXT,
+                        "colors" to TEXT
                 )
         )
     }

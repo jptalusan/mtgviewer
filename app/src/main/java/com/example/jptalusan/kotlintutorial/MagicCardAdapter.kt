@@ -1,21 +1,18 @@
 package com.example.jptalusan.kotlintutorial
 
-import android.content.Context
-import android.content.Intent
 import android.graphics.Color
-import android.os.Bundle
-import android.support.v4.app.ActivityOptionsCompat
-import android.support.v4.content.ContextCompat.startActivity
 import android.support.v7.widget.RecyclerView
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import com.example.jptalusan.kotlintutorial.Activities.MagicCardImage
+import com.example.jptalusan.kotlintutorial.MTGClasses.CardsWithExpansion
 import kotlinx.android.synthetic.main.magic_card_list_item.view.*
 import org.jetbrains.anko.backgroundColor
 import org.jetbrains.anko.startActivity
-import org.jetbrains.anko.toast
+import android.text.method.TextKeyListener.clear
 
-class MagicCardAdapter(var cardList: List<CardsWithExpansion>)
+class MagicCardAdapter(private var cardList: List<CardsWithExpansion>)
     : RecyclerView.Adapter<MagicCardAdapter.ViewHolder>() {
 
     var selectedPosition = -1
@@ -32,6 +29,7 @@ class MagicCardAdapter(var cardList: List<CardsWithExpansion>)
                     "magicCardList" to cardList,
                     "position" to selectedPosition
             )
+            
         }
     }
 
@@ -65,7 +63,7 @@ class MagicCardAdapter(var cardList: List<CardsWithExpansion>)
         }
     }
 
-    fun <T : RecyclerView.ViewHolder> T.listen(event: (position: Int, type: Int) -> Unit): T {
+    private fun <T : RecyclerView.ViewHolder> T.listen(event: (position: Int, type: Int) -> Unit): T {
         itemView.setOnClickListener {
             event.invoke(adapterPosition, itemViewType)
         }

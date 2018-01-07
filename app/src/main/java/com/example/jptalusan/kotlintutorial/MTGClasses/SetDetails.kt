@@ -1,4 +1,4 @@
-package com.example.jptalusan.kotlintutorial
+package com.example.jptalusan.kotlintutorial.MTGClasses
 
 import android.os.Parcel
 import android.os.Parcelable
@@ -28,7 +28,8 @@ data class Cards (
         val toughness: String = "",
         val mciNumber: Int = 0,
         val variations: List<Int> = arrayListOf(),
-        val types: List<String> = arrayListOf()
+        val types: List<String> = arrayListOf(),
+        val colors: List<String> = listOf("Colorless")
 )
 
 data class CardsWithExpansion (
@@ -46,9 +47,12 @@ data class CardsWithExpansion (
         val text: String = "",
         val mciNumber: String = "",
         val types: String = "",
-        val variations: String = ""
+        val variations: String = "",
+        val colors: String = "Colorless"
+
 ) : Parcelable {
     constructor(parcelIn: Parcel) : this(
+            parcelIn.readString(),
             parcelIn.readString(),
             parcelIn.readString(),
             parcelIn.readString(),
@@ -95,6 +99,7 @@ data class CardsWithExpansion (
         dest.writeString(mciNumber)
         dest.writeString(types)
         dest.writeString(variations)
+        dest.writeString(colors)
     }
 
 

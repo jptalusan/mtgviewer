@@ -1,4 +1,4 @@
-package com.example.jptalusan.kotlintutorial
+package com.example.jptalusan.kotlintutorial.Activities
 
 import android.content.SharedPreferences
 import android.support.v7.app.AppCompatActivity
@@ -15,28 +15,44 @@ import android.support.v4.view.GravityCompat
 import android.app.SearchManager
 import android.content.Context
 import android.content.Intent
+import android.support.v4.media.session.MediaButtonReceiver.handleIntent
 import android.view.*
 import android.support.v7.widget.SearchView
 import android.widget.ShareActionProvider
-import com.example.jptalusan.kotlintutorial.R.id.magicCardsRecyclerView
+import com.example.jptalusan.kotlintutorial.*
+import com.example.jptalusan.kotlintutorial.Databases.SetList
+import com.example.jptalusan.kotlintutorial.Databases.allSets
+import com.example.jptalusan.kotlintutorial.Databases.database
+import com.example.jptalusan.kotlintutorial.Databases.setListDatabase
+import com.example.jptalusan.kotlintutorial.MTGClasses.CardsWithExpansion
+import com.example.jptalusan.kotlintutorial.MTGClasses.Set
+import com.example.jptalusan.kotlintutorial.MTGClasses.SetDetails
 import com.fasterxml.jackson.databind.DeserializationFeature
-import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
-import kotlinx.coroutines.experimental.selects.select
 import org.jetbrains.anko.doAsync
-import org.jetbrains.anko.intentFor
 import org.jetbrains.anko.uiThread
 import java.net.URL
 
 //TODO: Add viewpagers for variations and text info first then swipe to image1, image2 etc...
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), View.OnClickListener {
+    override fun onClick(v: View?) {
+        var color = when(v?.id) {
+            R.id.red -> "Red"
+            R.id.white -> "White"
+            R.id.blue -> "Blue"
+            R.id.black -> "Black"
+            R.id.green -> "Green"
+            else -> { "Colorless" }
+        }
+        if (expansion != null) {
+            updateAdapters(filterByColor(expansion!!, color))
+        }
+    }
+
     val TAG = "MTGViewer"
-    var prefs: SharedPreferences? = null
     val PREFS_FILENAME = "com.teamtreehouse.colorsarefun.prefs"
-    val setListCode: MutableList<String> = mutableListOf("")
     var mDrawerToggle: ActionBarDrawerToggle? = null
-    internal var mShareActionProvider: ShareActionProvider? = null
     var expansion: String? = null
     var noDuplicates = false
     var artistSearch = false
@@ -46,8 +62,17 @@ class MainActivity : AppCompatActivity() {
         println("MainActivity")
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
         setSupportActionBar(my_toolbar)
-        Log.d(TAG, "TEST")
+
+        red.setOnClickListener(this)
+        white.setOnClickListener(this)
+        blue .setOnClickListener(this)
+        black.setOnClickListener(this)
+        green.setOnClickListener(this)
+        colorless.setOnClickListener(this)
+
+        startWithLEA()
 
         mDrawerToggle = object : ActionBarDrawerToggle(this, drawer_layout, R.string.app_name, R.string.app_name) {
             override fun onDrawerClosed(drawerView: View) {
@@ -84,9 +109,14 @@ class MainActivity : AppCompatActivity() {
         magicCardsRecyclerView.addItemDecoration(DividerItemDecoration(this,
                 DividerItemDecoration.VERTICAL))
 
+        //Add listener to when i press back from the fragment and get current position
+//        magicCardsRecyclerView.scrollToPosition()
+
         left_drawer.setOnItemClickListener({
             _, view, i, _ ->
             if (view is TextView) {
+                updateAdapters(arrayListOf())
+                progress.visibility = View.VISIBLE
                 supportActionBar!!.title = view.text.toString()
                 magicCardsRecyclerView.layoutManager = LinearLayoutManager(this)
                 magicCardsRecyclerView.hasFixedSize()
@@ -103,6 +133,22 @@ class MainActivity : AppCompatActivity() {
             }
             drawer_layout.closeDrawer(left_drawer)
         })
+    }
+
+    private fun startWithLEA() {
+        updateAdapters(arrayListOf())
+        progress.visibility = View.VISIBLE
+        supportActionBar!!.title = "Limited Edition Alpha"
+        magicCardsRecyclerView.layoutManager = LinearLayoutManager(this)
+        magicCardsRecyclerView.hasFixedSize()
+        val code = "LEA"
+        expansion = code
+        println(code)
+        if (!checkIfAlreadyDownloaded(code)) {
+            saveSetDetailsToDB(code)
+        } else {
+            updateAdapters(getSet(code))
+        }
     }
 
     private fun saveSetDetailsToDB(code: String) {
@@ -139,7 +185,8 @@ class MainActivity : AppCompatActivity() {
                             "text" to it.text,
                             "mciNumber" to it.mciNumber,
                             "types" to it.types.toString(),
-                            "variations" to it.variations.toString()
+                            "variations" to it.variations.toString(),
+                            "colors" to it.colors.toString()
                     )
                 }
             }
@@ -166,11 +213,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun getSetList() =
-            setListDatabase.use {
-                select(SetList).exec {
-                    parseList(setListParser)
-                }
-            }
+        setListDatabase.use {
+            select(SetList).exec {
+                parseList(setListParser)
+        }
+    }
 
     private fun checkIfAlreadyDownloaded(code: String): Boolean {
         val downloaded = setListDatabase.use {
@@ -186,12 +233,12 @@ class MainActivity : AppCompatActivity() {
         return false
     }
 
-        private fun getSet(code: String) =
-            database.use {
-                select(allSets).whereSimple("setCode=?", code).orderBy("mciNumber ASC").exec {
-                    parseList(cardListParser)
-                }
+    private fun getSet(code: String) =
+        database.use {
+            select(allSets).whereSimple("setCode=?", code).orderBy("mciNumber ASC").exec {
+                parseList(cardListParser)
             }
+        }
 
     //Group by returns only distinct from the particular column
     private fun searchForNameContaining(query: String) =
@@ -206,6 +253,16 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+
+    //Group by returns only distinct from the particular column
+    private fun filterByColor(code: String, color: String) =
+            database.use {
+                select(allSets).whereArgs("setCode = {exp} and colors like {color}",
+                        "exp" to code,
+                        "color" to "%$color%").orderBy("mciNumber ASC").exec {
+                    parseList(cardListParser)
+                }
+            }
 
     private fun getAllByArtist(artistName: String) =
             database.use {
@@ -328,5 +385,6 @@ class MainActivity : AppCompatActivity() {
         magicCardsRecyclerView.adapter = null
         magicCardsRecyclerView.adapter = MagicCardAdapter(cardList)
         magicCardsRecyclerView.adapter.notifyDataSetChanged()
+        progress.visibility = View.GONE
     }
 }

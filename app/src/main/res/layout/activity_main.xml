@@ -1,35 +1,137 @@
 <android.support.v4.widget.DrawerLayout
-xmlns:android="http://schemas.android.com/apk/res/android"
-android:id="@+id/drawer_layout"
-android:layout_width="match_parent"
-android:layout_height="match_parent"
-android:fitsSystemWindows="true">
-
-<!-- Your normal content view -->
-<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/drawer_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:id="@+id/llRecycler">
+    android:fitsSystemWindows="true">
 
-    <!-- We use a Toolbar so that our drawer can be displayed
-         in front of the action bar -->
-    <android.support.v7.widget.Toolbar
-        android:id="@+id/my_toolbar"
-        android:layout_height="wrap_content"
-        android:layout_width="match_parent"
-        android:minHeight="?attr/actionBarSize"
-        android:background="?attr/colorPrimary" />
-
-    <!-- The rest of your content view -->
-
-
-    <android.support.v7.widget.RecyclerView
-        android:id="@+id/magicCardsRecyclerView"
+<!-- Your normal content view -->
+    <android.support.constraint.ConstraintLayout
+        android:id="@+id/llRecycler"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:visibility="visible"/>
-</LinearLayout>
+        android:orientation="vertical">
+
+        <!-- We use a Toolbar so that our drawer can be displayed
+         in front of the action bar -->
+
+        <android.support.v7.widget.Toolbar
+            android:id="@+id/my_toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="?attr/colorPrimary"
+            android:minHeight="?attr/actionBarSize" />
+
+        <!-- The rest of your content view -->
+
+
+        <android.support.v7.widget.RecyclerView
+            android:id="@+id/magicCardsRecyclerView"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_marginBottom="8dp"
+            android:layout_marginEnd="8dp"
+            android:layout_marginStart="8dp"
+            android:visibility="visible"
+            app:layout_constraintBottom_toTopOf="@+id/guideline"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/my_toolbar">
+
+        </android.support.v7.widget.RecyclerView>
+
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_marginBottom="8dp"
+            android:layout_marginEnd="8dp"
+            android:layout_marginStart="8dp"
+            android:orientation="horizontal"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/guideline">
+
+
+            <ImageButton
+                android:id="@+id/white"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@null"
+                android:scaleType="fitCenter"
+                app:srcCompat="@drawable/white" />
+
+            <ImageButton
+                android:id="@+id/blue"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@null"
+                android:scaleType="fitCenter"
+                app:srcCompat="@drawable/blue" />
+
+            <ImageButton
+                android:id="@+id/black"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@null"
+                android:scaleType="fitCenter"
+                app:srcCompat="@drawable/black" />
+
+            <ImageButton
+                android:id="@+id/red"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@null"
+                android:scaleType="fitCenter"
+                app:srcCompat="@drawable/red" />
+
+            <ImageButton
+                android:id="@+id/green"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@null"
+                android:scaleType="fitCenter"
+                app:srcCompat="@drawable/green" />
+
+            <ImageButton
+                android:id="@+id/colorless"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@null"
+                android:scaleType="fitCenter"
+                app:srcCompat="@drawable/all" />
+        </LinearLayout>
+
+        <android.support.constraint.Guideline
+            android:id="@+id/guideline"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            app:layout_constraintGuide_percent="0.9" />
+
+        <ProgressBar
+            android:id="@+id/progress"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_marginBottom="8dp"
+            android:layout_marginEnd="8dp"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="8dp"
+            android:visibility="visible"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+    </android.support.constraint.ConstraintLayout>
 
 <!-- Your drawer view. This can be any view, LinearLayout
      is just an example. As we have set fitSystemWindows=true
