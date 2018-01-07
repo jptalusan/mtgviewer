@@ -55,6 +55,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
     var mDrawerToggle: ActionBarDrawerToggle? = null
     var expansion: String? = null
     var noDuplicates = false
+    var raresOnly = false
     var artistSearch = false
     var query: String? = null
 
@@ -235,8 +236,17 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 
     private fun getSet(code: String) =
         database.use {
-            select(allSets).whereSimple("setCode=?", code).orderBy("mciNumber ASC").exec {
-                parseList(cardListParser)
+            if (raresOnly) {
+                select(allSets).whereArgs("setCode = {exp} and rarity like {rarity}",
+                        "exp" to code,
+                        "rarity" to "%Rare%").orderBy("mciNumber ASC").exec {
+                    parseList(cardListParser)
+                }
+            } else {
+
+                select(allSets).whereSimple("setCode=?", code).orderBy("mciNumber ASC").exec {
+                    parseList(cardListParser)
+                }
             }
         }
 
@@ -257,10 +267,19 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
     //Group by returns only distinct from the particular column
     private fun filterByColor(code: String, color: String) =
             database.use {
-                select(allSets).whereArgs("setCode = {exp} and colors like {color}",
-                        "exp" to code,
-                        "color" to "%$color%").orderBy("mciNumber ASC").exec {
-                    parseList(cardListParser)
+                if (raresOnly) {
+                    select(allSets).whereArgs("setCode = {exp} and colors like {color} and rarity like {rarity}",
+                            "exp" to code,
+                            "color" to "%$color%",
+                            "rarity" to "%Rare%").orderBy("mciNumber ASC").exec {
+                        parseList(cardListParser)
+                    }
+                } else {
+                    select(allSets).whereArgs("setCode = {exp} and colors like {color}",
+                            "exp" to code,
+                            "color" to "%$color%").orderBy("mciNumber ASC").exec {
+                        parseList(cardListParser)
+                    }
                 }
             }
 
@@ -292,6 +311,10 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 
     override fun onCreateOptionsMenu(menu: Menu) : Boolean {
         menuInflater.inflate(R.menu.main, menu)
+
+        val prefs = this.getSharedPreferences(PREFS_FILENAME, 0)
+        menu.findItem(R.id.action_rare).isChecked = prefs.getBoolean("RareOnly", false)
+
         val searchManager = getSystemService(Context.SEARCH_SERVICE) as SearchManager
         var searchView = menu.findItem(R.id.search).actionView as? SearchView
 //        if (searchView != null)
@@ -305,6 +328,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         if ((mDrawerToggle as ActionBarDrawerToggle).onOptionsItemSelected(item)) {
             return true
         }
+
         // Handle action buttons
         when (item.itemId) {
             R.id.action_rare -> {
@@ -318,6 +342,11 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                     println(expansion)
                     updateAdapters(getRareOnly(expansion!!, "Rare"))
                 }
+
+                val prefs = this.getSharedPreferences(PREFS_FILENAME, 0)
+                raresOnly = item.isChecked
+                prefs.edit().putBoolean("RareOnly", raresOnly).apply()
+
                 return true
             }
             R.id.action_remove_duplicates -> {
